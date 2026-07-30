@@ -14,6 +14,7 @@ import emailjs from "@emailjs/browser";
 import {
   EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID,
   EMAILJS_TEMPLATE_BOOKING_RECEIVED, EMAILJS_TEMPLATE_PAYMENT_VERIFIED,
+  PENDING_HOLD_MINUTES,
 } from "./constants.js";
 
 const firebaseConfig = {
