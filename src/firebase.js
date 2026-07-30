@@ -86,6 +86,33 @@ export async function saveBooking(payload) {
   }
 }
 
+// A booking that's still "Pending Payment" after PENDING_HOLD_MINUTES is
+// treated as abandoned -- the customer said they'd pay but never did (or
+// changed their mind). Paid bookings never expire, no matter how old.
+export function isBookingExpired(booking) {
+  if (!booking || booking.status === "Paid") return false;
+  if (!booking.createdAt || typeof booking.createdAt.toMillis !== "function") return false;
+  const ageMs = Date.now() - booking.createdAt.toMillis();
+  return ageMs > PENDING_HOLD_MINUTES * 60 * 1000;
+}
+
+// Deletes any "Pending Payment" booking older than PENDING_HOLD_MINUTES.
+// Requires being signed in as admin (Firestore rules only allow delete to
+// authenticated requests) -- call this from the admin dashboard.
+export async function cleanupExpiredBookings() {
+  if (!db) return 0;
+  try {
+    const q = query(collection(db, "bookings"), where("status", "==", "Pending Payment"));
+    const snap = await getDocs(q);
+    const expiredDocs = snap.docs.filter((docSnap) => isBookingExpired(docSnap.data()));
+    await Promise.all(expiredDocs.map((docSnap) => deleteDoc(doc(db, "bookings", docSnap.id))));
+    return expiredDocs.length;
+  } catch (err) {
+    console.error("Failed to clean up expired bookings:", err);
+    return 0;
+  }
+}
+
 export async function getBookedSlotsForDate(dateLabel) {
   if (!db) return [];
   try {

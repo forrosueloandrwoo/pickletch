@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { getAllBookings, markBookingPaid, adminSignOut } from "../../firebase.js";
+import { getAllBookings, markBookingPaid, adminSignOut, cleanupExpiredBookings, isBookingExpired } from "../../firebase.js";
+import { PENDING_HOLD_MINUTES } from "../../constants.js";
 
-function StatusBadge({ status }) {
+function StatusBadge({ booking }) {
+  const expired = isBookingExpired(booking);
+  const status = expired ? "Expired" : booking.status || "Pending Payment";
   const isPaid = status === "Paid";
+  const isExpired = status === "Expired";
   return (
     <span
       className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-        isPaid ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"
+        isPaid ? "bg-green-100 text-green-700" : isExpired ? "bg-gray-100 text-gray-500" : "bg-yellow-100 text-yellow-800"
       }`}
     >
       {status}
@@ -18,6 +22,8 @@ export default function AdminDashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanupMessage, setCleanupMessage] = useState("");
 
   const loadBookings = async () => {
     setLoading(true);
@@ -31,16 +37,36 @@ export default function AdminDashboard() {
   const handleMarkPaid = async (booking) => {
     setUpdatingId(booking.id);
     await markBookingPaid(booking);
-    await loadBookings(); // refresh so the badge/button reflect the new status
+    await loadBookings();
     setUpdatingId(null);
   };
+
+  const handleCleanup = async () => {
+    setCleaning(true);
+    setCleanupMessage("");
+    const count = await cleanupExpiredBookings();
+    await loadBookings();
+    setCleanupMessage(count > 0 ? `Removed ${count} expired booking${count > 1 ? "s" : ""}.` : "No expired bookings to remove.");
+    setCleaning(false);
+  };
+
+  const expiredCount = bookings.filter(isBookingExpired).length;
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 sm:px-8 py-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="font-display text-2xl font-bold text-gray-800">Bookings</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {expiredCount > 0 && (
+              <button
+                onClick={handleCleanup}
+                disabled={cleaning}
+                className="text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {cleaning ? "Cleaning up..." : `Clean Up ${expiredCount} Expired`}
+              </button>
+            )}
             <button onClick={loadBookings} className="text-sm font-semibold text-green-700 hover:text-green-800">
               Refresh
             </button>
@@ -49,6 +75,15 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {cleanupMessage && (
+          <p className="text-sm text-gray-500 mb-4 -mt-2">{cleanupMessage}</p>
+        )}
+
+        <p className="text-xs text-gray-400 mb-4">
+          Unpaid bookings automatically free up their slot after {PENDING_HOLD_MINUTES} minutes, but stay listed
+          here as "Expired" until you clean them up.
+        </p>
 
         {loading ? (
           <p className="text-gray-500">Loading bookings...</p>
@@ -78,7 +113,7 @@ export default function AdminDashboard() {
                     <td className="p-4 text-gray-700">{b.date}</td>
                     <td className="p-4 text-gray-700">{(b.slots || []).join(", ")}</td>
                     <td className="p-4 text-gray-700">₱{b.total}</td>
-                    <td className="p-4"><StatusBadge status={b.status || "Pending Payment"} /></td>
+                    <td className="p-4"><StatusBadge booking={b} /></td>
                     <td className="p-4">
                       {b.status !== "Paid" && (
                         <button
