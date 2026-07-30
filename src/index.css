@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background-color: #fefce8;
+}
+
+/* ---- hero background: court lines + drifting blobs + ball trail ---- */
+.court-lines {
+  background-image:
+    repeating-linear-gradient(to right, rgba(255,255,255,0.6) 0, rgba(255,255,255,0.6) 2px, transparent 2px, transparent 64px),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,0.6) 0, rgba(255,255,255,0.6) 2px, transparent 2px, transparent 64px);
+}
+
+@keyframes loaderBounce {
+  0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.5, 0, 1, 1); }
+  50% { transform: translateY(-36px); animation-timing-function: cubic-bezier(0, 0, 0.5, 1); }
+}
+@keyframes loaderSquash {
+  0%, 100% { transform: scale(1.18, 0.82); }
+  50% { transform: scale(0.88, 1.14); }
+}
+@keyframes loaderSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes loaderShadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.3; }
+  50% { transform: scaleX(0.55); opacity: 0.12; }
+}
+
+.loader-bounce { animation: loaderBounce 0.9s ease-in-out infinite; }
+.loader-squash { animation: loaderSquash 0.9s ease-in-out infinite; }
+.loader-spin { animation: loaderSpin 1.6s linear infinite; }
+.loader-shadow { animation: loaderShadow 0.9s ease-in-out infinite; }
+
+@keyframes loaderProgress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.loader-progress { animation: loaderProgress 1.6s ease-in-out forwards; }
+
+@keyframes driftYellow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(3%, -5%) scale(1.1); }
+}
+@keyframes driftGreen {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-4%, 4%) scale(1.06); }
+}
+.blob-yellow { animation: driftYellow 16s ease-in-out infinite; }
+.blob-green { animation: driftGreen 20s ease-in-out infinite; }
+
+@keyframes trailFade {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.7; }
+}
+.trail-dot { animation: trailFade 2.4s ease-in-out infinite; }
+
+/* ---- offers marquee ---- */
+.marquee-viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marqueeScroll 24s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ---- 3D coverflow carousel ---- */
+.carousel-stage {
+  position: relative;
+  width: clamp(260px, 90vw, 620px);
+  height: clamp(230px, 62vw, 400px);
+  max-width: 100%;
+  perspective: 1400px;
+  cursor: grab;
+  touch-action: pan-y;
+}
+.carousel-stage.is-dragging { cursor: grabbing; }
+
+.carousel-floor {
+  position: absolute;
+  left: 50%;
+  bottom: 2%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 8%;
+  border-radius: 9999px;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, transparent 72%);
+  filter: blur(2px);
+  z-index: 1;
+}
+
+.carousel-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 62%;
+  height: 88%;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  transition: transform .45s ease, opacity .45s ease, box-shadow .45s ease;
+  will-change: transform, opacity;
+  user-select: none;
+}
+.carousel-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.carousel-card .tint {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 20, 10, 0.4);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.carousel-card.is-center {
+  border: 4px solid #ffffff;
+  box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.45);
+}
+
+.carousel-dots {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 40;
+}
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(22, 101, 52, 0.3);
+  cursor: pointer;
+  transition: background 0.3s, width 0.3s;
+}
+.carousel-dot.active {
+  background: #16a34a;
+  width: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob-yellow, .blob-green, .trail-dot, .carousel-card {
+    animation: none !important;
+    transition: none !important;
+  }
+  .loader-bounce, .loader-squash, .loader-spin, .loader-shadow {
+    animation: none !important;
+  }
+}
